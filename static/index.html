@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LegalLens — AI Legal Document Analyzer</title>
+<style>
+:root{--bg:#f4f6f7;--card:#fff;--ink:#14262b;--mute:#5d6f74;--line:#d9e1e3;--hi:#fff0a8;--brand:#0f4c5c;--onbrand:#fff;--high:#b3261e;--med:#b86e00;--low:#2f6f4f;--ins:#c8f0d2;--del:#ffd6d2}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1b1e;--card:#162428;--ink:#e6eef0;--mute:#93a7ac;--line:#28393e;--hi:#5b4d10;--brand:#6cc4d6;--onbrand:#0f1b1e;--high:#ff8a80;--med:#ffb74d;--low:#7fd1a1;--ins:#1d4a2c;--del:#5a2420}}
+*,*::before,*::after{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:600;margin:0;line-height:1.25}
+h2{font-size:24px;margin-bottom:6px}h3{font-size:17px}
+.wrap{max-width:980px;margin:0 auto;padding:0 20px}
+header{padding:30px 0 18px}header h1{font-size:34px}
+header h1 span{background:var(--hi);padding:0 6px;border-radius:3px}
+header p{margin:6px 0 0;color:var(--mute);max-width:60ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:12px}
+.drop{display:block;border:2px dashed var(--line);border-radius:8px;padding:26px 16px;text-align:center;background:var(--card);cursor:pointer}
+.drop:hover,.drop.on{border-color:var(--brand)}.drop small{display:block;color:var(--mute);margin-top:4px}
+button{background:var(--brand);color:var(--onbrand);border:0;border-radius:6px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+select,input[type=text]{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.row>.grow{flex:1 1 220px}
+label.lbl{font-weight:600;color:var(--mute);font-size:13px}
+.msg{margin:10px 0;min-height:22px;color:var(--mute)}.msg.err{color:var(--high)}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 14px;border-bottom:1px solid var(--line);padding-bottom:8px}
+nav button{background:transparent;color:var(--mute);font-weight:500;padding:7px 12px}
+nav button.on{background:var(--brand);color:var(--onbrand)}
+.muted{color:var(--mute)}.small{font-size:13px}
+.item{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:12px;overflow-wrap:anywhere}
+.item.high{border-left-color:var(--high)}.item.medium{border-left-color:var(--med)}.item.low{border-left-color:var(--low)}
+.item>*+*{margin-top:8px}
+.tag{font-size:12px;font-weight:700;text-transform:capitalize}.high .tag{color:var(--high)}.medium .tag{color:var(--med)}.low .tag{color:var(--low)}
+.quote{font-family:"Newsreader",Georgia,serif;font-size:16px;line-height:1.9;margin:0}
+.quote span{background:var(--hi);padding:2px 3px;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.where{font-size:13px;color:var(--mute)}
+.meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden}.meter i{display:block;height:100%;background:var(--med)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:13px;overflow-wrap:anywhere}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:12px}
+.facts .card{margin:0}.facts h3{font-size:14px;color:var(--mute);margin-bottom:6px}
+.ans{white-space:pre-wrap;font-size:16px}
+ins{background:var(--ins);text-decoration:none;padding:0 2px;border-radius:2px}del{background:var(--del);padding:0 2px;border-radius:2px}
+.sec{margin:22px 0 10px}
+.hide{display:none}.disc{font-size:12px;color:var(--mute);margin:30px 0 40px}
+@media(max-width:560px){header h1{font-size:28px}.wrap{padding:0 14px}}
+</style></head><body>
+<div class="wrap">
+<header><h1>Legal<span>Lens</span></h1><p>Upload a contract, NDA or rental agreement. Get a plain-language summary, flagged risks, and answers that point to the exact page.</p></header>
+
+<label class="drop" id="drop" tabindex="0"><input id="file" type="file" accept=".pdf,.docx,.txt" multiple hidden>
+<b>Choose documents</b> or drop them here<small>PDF, DOCX or TXT · upload two or more to compare</small></label>
+<div id="msg" class="msg" role="status"></div>
+
+<div id="app" class="hide">
+ <div class="card row"><label class="lbl grow" for="docsel">Document<select id="docsel"></select></label></div>
+ <nav id="tabs" aria-label="Sections"></nav>
+ <section id="view" aria-live="polite"></section>
+</div>
+<p class="disc">LegalLens explains documents for understanding only. It is not legal advice; consult a qualified lawyer before signing.</p>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const TABS=["Summary","Clauses","Entities","Risks","Ask","Compare"];
+const docs={};let cur=null,tab="Summary";
+
+const where=(p,s)=>`<div class="where">${p?"Page "+p+" · ":""}${esc(s)}</div>`;
+const quote=t=>`<p class="quote"><span>${esc(t)}</span></p>`;
+const chips=a=>`<div class="chips">${a.map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div>`;
+const sevClass=l=>l==="High"?"high":l==="Moderate"?"medium":"low";
+const meter=n=>`<div class="meter" role="img" aria-label="Risk ${n} out of 100"><i style="width:${n}%"></i></div>`;
+const msg=(t,err)=>{const m=$("#msg");m.textContent=t||"";m.className="msg"+(err?" err":"")};
+
+async function api(url,opt){
+  const r=await fetch(url,opt);let j={};try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(typeof j.detail==="string"?j.detail:"Request failed ("+r.status+")");return j}
+
+async function upload(files){
+  for(const f of files){
+    msg("Analyzing "+f.name+"… (first run can take a minute while models load)");
+    try{const fd=new FormData();fd.append("file",f);
+      const d=await api("/api/upload",{method:"POST",body:fd});docs[d.id]=d;cur=d.id;msg("")}
+    catch(e){msg(f.name+": "+e.message,true)}}
+  if(cur){$("#app").classList.remove("hide");fillSelect();render()}}
+
+function fillSelect(){
+  $("#docsel").innerHTML=Object.values(docs).map(d=>`<option value="${d.id}"${d.id===cur?" selected":""}>${esc(d.name)}</option>`).join("")}
+
+$("#file").onchange=e=>{upload([...e.target.files]);e.target.value=""};
+$("#docsel").onchange=e=>{cur=e.target.value;render()};
+const dz=$("#drop");
+dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};
+dz.ondragleave=()=>dz.classList.remove("on");
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove("on");upload([...e.dataTransfer.files])};
+dz.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#file").click()}};
+
+function render(){
+  $("#tabs").innerHTML=TABS.map(t=>`<button class="${t===tab?"on":""}" data-t="${t}">${t}</button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+  const el=$("#view");el.innerHTML="";V[tab](docs[cur],el)}
+
+const V={
+Summary(d,el){
+  const s=d.summary,facts=Object.entries(s.facts).filter(([,v])=>v.length);
+  el.innerHTML=`<h2>${esc(s.doc_type)}</h2>
+   <p class="muted small">${s.pages} page(s) · ${s.words} words · search engine: ${esc(d.embedder)}</p>
+   <div class="card"><p class="ans" style="margin:0">${esc(s.plain)}</p></div>
+   <div class="item ${sevClass(d.risks.level)}"><b>Overall risk: ${d.risks.level} (${d.risks.score}/100)</b>${meter(d.risks.score)}</div>
+   ${facts.length?`<h3 class="sec">Key facts</h3><div class="facts">${facts.map(([k,v])=>`<div class="card"><h3>${k}</h3>${chips(v)}</div>`).join("")}</div>`:""}
+   <h3 class="sec">Key sentences</h3>
+   ${s.key_sentences.map(k=>`<div class="item">${quote(k.text)}${where(k.page,k.section)}</div>`).join("")||"<p class=muted>None found.</p>"}`},
+
+Clauses(d,el){
+  const c=d.clauses;
+  el.innerHTML=(c.missing.length?`<div class="item high"><b>Not found in this document</b>${chips(c.missing)}</div>`:"")+
+   (c.clauses.map(x=>`<div class="item"><h3>${esc(x.type)}</h3><div class="muted">${esc(x.plain)}</div>${quote(x.excerpt)}${where(x.page,x.section)}</div>`).join("")||"<p class=muted>No key clauses detected.</p>")},
+
+Entities(d,el){
+  const e=Object.entries(d.entities);
+  el.innerHTML=e.map(([k,v])=>`<div class="card"><h3 style="margin-bottom:8px">${k}</h3>
+   <div class="chips">${v.map(x=>`<span class="chip" title="First seen on page ${x.page}">${esc(x.text)}${x.count>1?" ×"+x.count:""}</span>`).join("")}</div></div>`).join("")||"<p class=muted>No entities found.</p>"},
+
+Risks(d,el){
+  const r=d.risks;
+  el.innerHTML=`<div class="item ${sevClass(r.level)}"><b>${r.level} risk · ${r.score}/100</b>${meter(r.score)}</div>`+
+   (r.risks.map(x=>`<div class="item ${x.severity}"><span class="tag">${x.severity} risk</span><h3>${esc(x.title)}</h3><div>${esc(x.why)}</div>${x.excerpt?quote(x.excerpt):""}${where(x.page,x.section)}</div>`).join("")||"<p class=muted>No risky patterns detected.</p>")},
+
+Ask(d,el){
+  el.innerHTML=`<div class="row"><div class="grow"><input id="q" type="text" aria-label="Your question" placeholder="e.g. How much notice is needed to terminate?"></div><button id="go">Ask</button></div>
+   <div class="row small muted" style="margin-top:8px">Try: ${["What is the rent?","Can the landlord evict me?","Which law applies?"].map(t=>`<button class="ex" style="background:transparent;color:var(--brand);border:1px solid var(--line);padding:3px 10px;font-weight:500">${t}</button>`).join("")}</div>
+   <div id="out" style="margin-top:14px"></div>`;
+  const go=async()=>{
+    const q=$("#q").value.trim();if(!q)return;const b=$("#go");b.disabled=true;$("#out").innerHTML="<p class=muted>Searching the document…</p>";
+    try{const a=await api(`/api/docs/${cur}/ask`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:q})});
+      $("#out").innerHTML=`<div class="card"><p class="ans" style="margin:0">${esc(a.answer)}</p><p class="muted small" style="margin:8px 0 0">Mode: ${a.mode}</p></div>
+       <h3 class="sec">Where this came from</h3>`+a.sources.map(s=>`<div class="item"><b>[${s.n}]</b>${where(s.page,s.section+" · match "+s.score)}${quote(s.text)}</div>`).join("")}
+    catch(e){$("#out").innerHTML=`<p class="msg err">${esc(e.message)}</p>`}b.disabled=false};
+  $("#go").onclick=go;$("#q").onkeydown=e=>{if(e.key==="Enter")go()};
+  el.querySelectorAll("button.ex").forEach(b=>b.onclick=()=>{$("#q").value=b.textContent;go()})},
+
+Compare(d,el){
+  const ids=Object.keys(docs);
+  if(ids.length<2){el.innerHTML="<p>Upload a second document to compare it with this one.</p>";return}
+  const opt=s=>ids.map(i=>`<option value="${i}"${i===s?" selected":""}>${esc(docs[i].name)}</option>`).join("");
+  const other=ids.find(i=>i!==cur);
+  el.innerHTML=`<div class="card row"><label class="lbl grow">Original (A)<select id="ca">${opt(cur)}</select></label>
+   <label class="lbl grow">New version (B)<select id="cb">${opt(other)}</select></label><button id="cmp">Compare</button></div><div id="out"></div>`;
+  $("#cmp").onclick=async()=>{
+    const b=$("#cmp");b.disabled=true;$("#out").innerHTML="<p class=muted>Comparing…</p>";
+    try{const r=await api("/api/compare",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({a:$("#ca").value,b:$("#cb").value})});
+      const L=(t,a)=>a.length?`<div class="card"><h3 style="margin-bottom:8px">${t}</h3>${chips(a)}</div>`:"";
+      $("#out").innerHTML=`<h2>${r.similarity}% similar</h2><p class="muted small">Risk score: ${r.risks.score_a} → ${r.risks.score_b}</p>
+       ${r.explanation?`<div class="card"><p class="ans" style="margin:0">${esc(r.explanation)}</p></div>`:""}
+       ${Object.entries(r.values).map(([k,v])=>L(k+" only in A",v.only_in_a)+L(k+" only in B",v.only_in_b)).join("")}
+       ${L("Clauses only in A",r.clauses.only_in_a)}${L("Clauses only in B",r.clauses.only_in_b)}${L("New risks in B",r.risks.new_in_b)}${L("Risks resolved in B",r.risks.resolved_in_b)}
+       <h3 class="sec">${r.changes.length} change(s)</h3>`+
+       r.changes.map(c=>`<div class="item ${c.kind==="removed"?"high":c.kind==="added"?"low":"medium"}"><span class="tag">${c.kind}</span>${where(c.page_b||c.page_a,c.section_b||c.section_a||"")}<div>${c.kind==="modified"?c.diff:c.kind==="removed"?"<del>"+esc(c.old)+"</del>":"<ins>"+esc(c.new)+"</ins>"}</div></div>`).join("")}
+    catch(e){$("#out").innerHTML=`<p class="msg err">${esc(e.message)}</p>`}b.disabled=false}}
+};
+</script></body></html>
