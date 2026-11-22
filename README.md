@@ -4,8 +4,6 @@
 
 ### AI Legal Document Analyzer
 
-*Read contracts the way a lawyer would, and understand them the way you would.*
-
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![NLP](https://img.shields.io/badge/NLP-RAG%20%7C%20Embeddings-0f4c5c)
@@ -76,13 +74,6 @@ uvicorn app.main:app --reload
 | 🔎 Semantic search | `pip install sentence-transformers` | Understands meaning, not just keywords |
 
 > The app works without any of these. It falls back to keyword (TF-IDF) search and extractive answers.
-
-### 🐳 Docker
-
-```bash
-docker build -t legallens .
-docker run -p 8000:8000 -e ANTHROPIC_API_KEY=your-key legallens
-```
 
 ### ✅ Run the tests
 
